@@ -10,7 +10,7 @@ System administrators can use ADSys to apply familiar skills and tools for manag
 
 ```{toctree}
 :hidden:
-tutorial/index
+Tutorial <tutorial/getting-started>
 how-to/index
 reference/index
 explanation/index
@@ -22,7 +22,7 @@ explanation/index
 ````{grid} 1 1 2 2
 
 ```{grid-item-card}
-### [Tutorial](tutorial/index)
+### [Tutorial](tutorial/getting-started)
 
 **Learn** to use ADSys for managing Ubuntu Desktop with Active Directory:
 
