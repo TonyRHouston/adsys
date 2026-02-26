@@ -7,7 +7,7 @@ concurrency:
 jobs:
   supported-releases:
     name: Build matrix for supported ADSys and Ubuntu releases
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-supported-releases.outputs.matrix }}
       versions: ${{ steps.set-supported-releases.outputs.versions }}
@@ -37,7 +37,7 @@ jobs:
         \ >> $GITHUB_OUTPUT\n"
   build-template:
     name: Build VM template
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     concurrency:
       group: template-build-${{ matrix.codename }}
     needs:
