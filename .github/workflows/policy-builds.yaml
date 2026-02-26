@@ -7,7 +7,7 @@ concurrency:
 jobs:
   build-admxgen:
     name: Build admxgen static binary
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
     - uses: actions/setup-go@v6
@@ -30,7 +30,7 @@ jobs:
         if-no-files-found: error
   supported-releases:
     name: Build matrix for supported ADSys, Ubuntu, and docker releases
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-supported-releases.outputs.matrix }}
     needs: build-admxgen
@@ -61,7 +61,7 @@ jobs:
         \ >> $GITHUB_OUTPUT\n"
   collect-releases:
     name: Collect supported keys on each releases
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     needs:
     - build-admxgen
     - supported-releases
@@ -108,7 +108,7 @@ jobs:
         if-no-files-found: error
   generate-ad:
     name: Merge keys to generated admx/adml
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     needs: collect-releases
     strategy:
       matrix:
@@ -145,7 +145,7 @@ jobs:
         if-no-files-found: error
   generate-doc:
     name: Merge keys to generated documentation
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     needs: collect-releases
     steps:
     - uses: canonical/desktop-engineering/gh-actions/common/dpkg-install-speedup@main
@@ -174,7 +174,7 @@ jobs:
         if-no-files-found: error
   integrate:
     name: Integrate policy changes in current git tree
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     needs:
     - generate-ad
     - generate-doc
@@ -217,7 +217,7 @@ jobs:
         delete-branch: true
   open-issue-on-fail:
     name: Open issue on failure
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     needs: integrate
     if: ${{ failure() }}
     steps:
