@@ -7,7 +7,7 @@ concurrency:
 jobs:
   supported-releases:
     name: Build matrix for supported ADSys and Ubuntu releases
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-supported-releases.outputs.matrix }}
     steps:
@@ -46,7 +46,7 @@ jobs:
         \ $GITHUB_OUTPUT\n"
   tests:
     name: Tests
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     needs:
     - supported-releases
     strategy:
