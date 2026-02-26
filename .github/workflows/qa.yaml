@@ -11,7 +11,7 @@ env:
 jobs:
   sanity:
     name: Code sanity
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
     - uses: canonical/desktop-engineering/gh-actions/common/dpkg-install-speedup@main
     - name: Install dependencies
@@ -44,7 +44,7 @@ jobs:
       if: ${{ always() }}
   tests:
     name: Tests
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
     - uses: actions/setup-go@v6
@@ -145,7 +145,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
   adwatchd-tests:
     name: Windows tests for adwatchd
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     env:
       packages: ./internal/loghooks ./internal/watchdservice ./internal/watchdtui
         ./internal/watcher ./internal/config/watchd ./cmd/adwatchd ./cmd/adwatchd/integration_tests
