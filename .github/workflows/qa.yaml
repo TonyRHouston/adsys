@@ -2,206 +2,200 @@ name: QA
 on:
   push:
     branches:
-      - main
+    - main
     tags:
-      - '*'
-  pull_request:
-
+    - '*'
+  pull_request: null
 env:
-  apt_dependencies: >-
-    ca-certificates curl dconf-cli gcc gettext git libnss-wrapper libsmbclient-dev
-    libwbclient-dev pkg-config protobuf-compiler python3-coverage samba sudo
-
+  apt_dependencies: ca-certificates curl dconf-cli gcc gettext git libnss-wrapper
+    libsmbclient-dev libwbclient-dev pkg-config protobuf-compiler python3-coverage
+    samba sudo
 jobs:
   quality:
     name: Code quality and mod files up to date
     runs-on: ubuntu-latest
     container: ubuntu:latest
     steps:
-      - name: Install dependencies
-        run: |
-          DEBIAN_FRONTEND=noninteractive apt update
-          DEBIAN_FRONTEND=noninteractive apt install -y ${{ env.apt_dependencies }}
-      - name: work around permission issue with git vulnerability (we are local here). TO REMOVE
-        run: git config --global --add safe.directory /__w/adsys/adsys
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
-        with:
-          go-version-file: go.mod
-          cache: true
-      - name: Get version of golanci-lint to use
-        id: cilint-version-fetch
-        # This handles "require foo version" and "require (\nfoo version\n)"" formats
-        run: echo "version=$(grep golangci-lint tools/go.mod | rev | cut -f1 -d' ' | rev)" >> $GITHUB_OUTPUT
-      - name: Code formatting, vet, static checker Security…
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: ${{ steps.cilint-version-fetch.outputs.version }}
-          args: "--config .golangci-ci.yaml"
-      - name: Module files are up to date
-        run: |
-          set -eu
+    - name: Install dependencies
+      run: 'DEBIAN_FRONTEND=noninteractive apt update
 
-          go mod tidy
-          MODIFIED=`git status --porcelain go.sum go.mod`
-          if [ -n "$MODIFIED" ]; then
-              echo "ERROR: go module files aren't up to date:"
-              git --no-pager diff go.mod go.sum
-              exit 1
-          fi
-        if: ${{ always() }}
-      - name: Building
-        run: go build ./...
-        if: ${{ always() }}
+        DEBIAN_FRONTEND=noninteractive apt install -y ${{ env.apt_dependencies }}
 
+        '
+    - name: work around permission issue with git vulnerability (we are local here).
+        TO REMOVE
+      run: git config --global --add safe.directory /__w/adsys/adsys
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version-file: go.mod
+        cache: true
+    - name: Get version of golanci-lint to use
+      id: cilint-version-fetch
+      run: echo "version=$(grep golangci-lint tools/go.mod | rev | cut -f1 -d' ' |
+        rev)" >> $GITHUB_OUTPUT
+    - name: "Code formatting, vet, static checker Security\u2026"
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: ${{ steps.cilint-version-fetch.outputs.version }}
+        args: --config .golangci-ci.yaml
+    - name: Module files are up to date
+      run: "set -eu\n\ngo mod tidy\nMODIFIED=`git status --porcelain go.sum go.mod`\n\
+        if [ -n \"$MODIFIED\" ]; then\n    echo \"ERROR: go module files aren't up\
+        \ to date:\"\n    git --no-pager diff go.mod go.sum\n    exit 1\nfi\n"
+      if: ${{ always() }}
+    - name: Building
+      run: go build ./...
+      if: ${{ always() }}
   tests:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
-        with:
-          go-version-file: go.mod
-          cache: true
-      - name: Install dependencies
-        run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt update
-          sudo DEBIAN_FRONTEND=noninteractive apt install -y ${{ env.apt_dependencies }}
-      - name: Set required environment variables
-        run: echo "SUDO_PACKAGES=$(cat debian/tests/.sudo-packages)" >> $GITHUB_ENV
-      - name: Authenticate to docker local registry and pull image with our token
-        run: |
-          set -eu
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version-file: go.mod
+        cache: true
+    - name: Install dependencies
+      run: 'sudo DEBIAN_FRONTEND=noninteractive apt update
 
-          echo "${{ github.token }}" | docker login https://docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
-          docker pull docker.pkg.github.com/ubuntu/adsys/systemdaemons:0.1
-      - name: Run tests
-        run: |
-          set -eu
+        sudo DEBIAN_FRONTEND=noninteractive apt install -y ${{ env.apt_dependencies
+        }}
 
-          go test -coverpkg=./... -coverprofile=/tmp/coverage.out -covermode=count ./...
+        '
+    - name: Set required environment variables
+      run: echo "SUDO_PACKAGES=$(cat debian/tests/.sudo-packages)" >> $GITHUB_ENV
+    - name: Authenticate to docker local registry and pull image with our token
+      run: 'set -eu
 
-          # Run integration tests that need sudo
-          # Use command substitution to preserve go binary path (sudo does not preserve path even with -E)
-          sudo -E $(which go) test -coverpkg=./... -coverprofile=/tmp/coverage.sudo.out -covermode=count $SUDO_PACKAGES
 
-          # Combine coverage files, and filter out test utilities and generated files
-          echo "mode: set" > /tmp/coverage.combined.out
-          grep -hv -e "mode: set" -e "testutils" -e "pb.go:" /tmp/coverage.out /tmp/coverage.sudo.out > /tmp/coverage.combined.out
-      - name: Run tests (with race detector)
-        run: |
-          go test -race ./...
-          # Use command substitution to preserve go binary path (sudo does not preserve path even with -E)
-          sudo -E $(which go) test -race ${{ env.sudo_packages }}
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: /tmp/coverage.combined.out
+        echo "${{ github.token }}" | docker login https://docker.pkg.github.com -u
+        ${GITHUB_ACTOR} --password-stdin
 
+        docker pull docker.pkg.github.com/ubuntu/adsys/systemdaemons:0.1
+
+        '
+    - name: Run tests
+      run: 'set -eu
+
+
+        go test -coverpkg=./... -coverprofile=/tmp/coverage.out -covermode=count ./...
+
+
+        # Run integration tests that need sudo
+
+        # Use command substitution to preserve go binary path (sudo does not preserve
+        path even with -E)
+
+        sudo -E $(which go) test -coverpkg=./... -coverprofile=/tmp/coverage.sudo.out
+        -covermode=count $SUDO_PACKAGES
+
+
+        # Combine coverage files, and filter out test utilities and generated files
+
+        echo "mode: set" > /tmp/coverage.combined.out
+
+        grep -hv -e "mode: set" -e "testutils" -e "pb.go:" /tmp/coverage.out /tmp/coverage.sudo.out
+        > /tmp/coverage.combined.out
+
+        '
+    - name: Run tests (with race detector)
+      run: 'go test -race ./...
+
+        # Use command substitution to preserve go binary path (sudo does not preserve
+        path even with -E)
+
+        sudo -E $(which go) test -race ${{ env.sudo_packages }}
+
+        '
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: /tmp/coverage.combined.out
   adwatchd-tests:
     name: Windows tests for adwatchd
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     env:
-      packages: ./internal/loghooks ./internal/watchdservice ./internal/watchdtui ./internal/watcher ./internal/config/watchd ./cmd/adwatchd/integration_tests
+      packages: ./internal/loghooks ./internal/watchdservice ./internal/watchdtui
+        ./internal/watcher ./internal/config/watchd ./cmd/adwatchd/integration_tests
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v3
-        with:
-          go-version-file: go.mod
-          cache: true
-      - name: Build installer
-        run: |
-          tag=$(git describe --tags)
-          export GOFLAGS=-ldflags=-X=github.com/ubuntu/adsys/internal/consts.Version=$tag
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-go@v3
+      with:
+        go-version-file: go.mod
+        cache: true
+    - name: Build installer
+      run: 'tag=$(git describe --tags)
 
-          # Transforms git describe output:
-          # - from X.Y.Z-P-gSHA to X.Y.Z.P for untagged commits
-          # - from vX.Y.Z to X.Y.Z for tagged commits
-          INSTALLER_VERSION=$(echo $tag | tr -d v | tr '-' '.' | cut -d. -f-4)
+        export GOFLAGS=-ldflags=-X=github.com/ubuntu/adsys/internal/consts.Version=$tag
 
-          go build ./cmd/adwatchd
-          iscc.exe //DAPP_VERSION=$INSTALLER_VERSION installer/setup.iss
-        shell: bash
-      - name: Run tests
-        run: go test ${{ env.packages }}
-      - name: Run tests (with race detector)
-        env:
-          ADSYS_SKIP_INTEGRATION_TESTS: 1
-        run: go test -race ${{ env.packages }}
-        # There are some cryptic "The pipe has been closed" errors on Windows
-        # that arise from running the tests with the race detector enabled. We
-        # believe this originates outside our code, thus we avoid running the
-        # integration suite with the race detector.
-        #
-        # As the Linux job already exercises the entire testsuite with race
-        # detection enabled and the code is mostly platform independent, this
-        # should be a safe action to take.
-      - name: Attach installer artifact to workflow run
-        uses: actions/upload-artifact@v3
-        with:
-          name: adwatchd_setup
-          path: installer/Output/adwatchd_setup.exe
-      - name: Draft release and publish installer artifact
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: installer/Output/adwatchd_setup.exe
 
+        # Transforms git describe output:
+
+        # - from X.Y.Z-P-gSHA to X.Y.Z.P for untagged commits
+
+        # - from vX.Y.Z to X.Y.Z for tagged commits
+
+        INSTALLER_VERSION=$(echo $tag | tr -d v | tr ''-'' ''.'' | cut -d. -f-4)
+
+
+        go build ./cmd/adwatchd
+
+        iscc.exe //DAPP_VERSION=$INSTALLER_VERSION installer/setup.iss
+
+        '
+      shell: bash
+    - name: Run tests
+      run: go test ${{ env.packages }}
+    - name: Run tests (with race detector)
+      env:
+        ADSYS_SKIP_INTEGRATION_TESTS: 1
+      run: go test -race ${{ env.packages }}
+    - name: Attach installer artifact to workflow run
+      uses: actions/upload-artifact@v3
+      with:
+        name: adwatchd_setup
+        path: installer/Output/adwatchd_setup.exe
+    - name: Draft release and publish installer artifact
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: installer/Output/adwatchd_setup.exe
   generators:
     name: Generated files are up to date
     runs-on: ubuntu-latest
     container: ubuntu:latest
     steps:
-      # Add dependencies
-      - name: Install dependencies
-        run: |
-          DEBIAN_FRONTEND=noninteractive apt update
-          DEBIAN_FRONTEND=noninteractive apt install -y ${{ env.apt_dependencies }}
-      - name: work around permission issue with git vulnerability (we are local here). TO REMOVE
-        run: git config --global --add safe.directory /__w/adsys/adsys
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
-        with:
-          go-version-file: go.mod
-          cache: true
-      - name: Install go grpc protoc generator
-        run: |
-          set -eu
+    - name: Install dependencies
+      run: 'DEBIAN_FRONTEND=noninteractive apt update
 
-          cd tools/
-          go install google.golang.org/protobuf/cmd/protoc-gen-go \
-            google.golang.org/grpc/cmd/protoc-gen-go-grpc
-          cd -
-      - name: Check generated files
-        run: |
-          set -eu
+        DEBIAN_FRONTEND=noninteractive apt install -y ${{ env.apt_dependencies }}
 
-          # Ignore mod file changes; doc/ and README.md and po files
-          # Modules are handled in another check and aren't related to generator
-          # po and README.md files will be automatically updated once master in master.
-          git update-index --assume-unchanged go.* po/* doc/*.md README.md
-          on_exit() {
-              # Restore files
-              git update-index --no-assume-unchanged go.* po/* doc/*.md README.md
-          }
-          trap on_exit EXIT INT QUIT ABRT PIPE TERM
-
-          go generate ./...
-
-          # Handle everything but po and assets files
-          modified_files=`git status --porcelain --untracked-files=no`
-
-          # Check generated files
-          MODIFIED=""
-          if [ -n "$modified_files" ]; then
-              # Ignore assets modification time and protoc version.
-              MODIFIED=`git difftool -y -x "diff -I 'modTime' -I '^//.*protoc.*v'"`
-          fi
-
-          if [ -n "$MODIFIED" ]; then
-              echo "ERROR: 'go generate' modified files:"
-              git --no-pager diff
-              exit 1
-          fi
+        '
+    - name: work around permission issue with git vulnerability (we are local here).
+        TO REMOVE
+      run: git config --global --add safe.directory /__w/adsys/adsys
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version-file: go.mod
+        cache: true
+    - name: Install go grpc protoc generator
+      run: "set -eu\n\ncd tools/\ngo install google.golang.org/protobuf/cmd/protoc-gen-go\
+        \ \\\n  google.golang.org/grpc/cmd/protoc-gen-go-grpc\ncd -\n"
+    - name: Check generated files
+      run: "set -eu\n\n# Ignore mod file changes; doc/ and README.md and po files\n\
+        # Modules are handled in another check and aren't related to generator\n#\
+        \ po and README.md files will be automatically updated once master in master.\n\
+        git update-index --assume-unchanged go.* po/* doc/*.md README.md\non_exit()\
+        \ {\n    # Restore files\n    git update-index --no-assume-unchanged go.*\
+        \ po/* doc/*.md README.md\n}\ntrap on_exit EXIT INT QUIT ABRT PIPE TERM\n\n\
+        go generate ./...\n\n# Handle everything but po and assets files\nmodified_files=`git\
+        \ status --porcelain --untracked-files=no`\n\n# Check generated files\nMODIFIED=\"\
+        \"\nif [ -n \"$modified_files\" ]; then\n    # Ignore assets modification\
+        \ time and protoc version.\n    MODIFIED=`git difftool -y -x \"diff -I 'modTime'\
+        \ -I '^//.*protoc.*v'\"`\nfi\n\nif [ -n \"$MODIFIED\" ]; then\n    echo \"\
+        ERROR: 'go generate' modified files:\"\n    git --no-pager diff\n    exit\
+        \ 1\nfi\n"
