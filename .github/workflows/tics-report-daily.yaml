@@ -11,7 +11,7 @@ env:
 jobs:
   tics:
     name: TIOBE TiCS Framework
-    runs-on: ${{ vars.RUNNER }}
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
     - uses: actions/setup-go@v6
